@@ -1,0 +1,263 @@
+{
+  "name": "Consumer Trend Discovery AI Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1fc95fdb-4dc1-4055-9a1b-626b4506c076",
+      "name": "When chat message received",
+      "webhookId": "25b7832e-6327-4016-9987-cfbdd4fafebb"
+    },
+    {
+      "parameters": {
+        "jsCode": "// STAGE 1: Input Parser (v2 - URLs no longer needed)\n// Extracts category + optional focus from chat input.\n\nconst input = $input.first().json.chatInput || '';\n\n// Define valid categories\nconst categories = [\n  { key: 'area_rug', display: 'Area Rug', patterns: ['area rug', 'area rugs'] },\n  { key: 'outdoor_rug', display: 'Outdoor Rug', patterns: ['outdoor rug', 'outdoor rugs', 'patio rug'] },\n  { key: 'hallway_runner', display: 'Hallway Runner', patterns: ['hallway runner', 'runner rug', 'hall runner', 'runners'] },\n  { key: 'shag_rug', display: 'Shag Rug', patterns: ['shag rug', 'shag rugs', 'shaggy rug'] }\n];\n\nlet selectedCategory = null;\nlet categoryKey = null;\nconst lowerInput = input.toLowerCase();\nfor (const cat of categories) {\n  for (const pattern of cat.patterns) {\n    if (lowerInput.includes(pattern)) {\n      selectedCategory = cat.display;\n      categoryKey = cat.key;\n      break;\n    }\n  }\n  if (selectedCategory) break;\n}\n\n// Optional focus keyword\nconst focusMatch = input.match(/focus\\s*:\\s*([^\\n]+)/i);\nconst focus = focusMatch ? focusMatch[1].trim() : '';\n\nconst hasCategory = !!selectedCategory;\nconst hasValidInput = hasCategory;\n\nreturn [{\n  json: {\n    selectedCategory,\n    categoryKey,\n    focus,\n    hasCategory,\n    hasValidInput,\n    errorReason: hasCategory ? null : 'no_category'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "aa62983d-0e94-4288-a3eb-164a73b89d17",
+      "name": "Input Parser1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bdbec5c3-f429-4711-b94f-d7432f03ad4c",
+              "leftValue": "={{ $json.hasValidInput }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        416,
+        0
+      ],
+      "id": "592d1a2a-a748-4df3-a598-ea08a5e5a61d",
+      "name": "Category Validator1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Error response - handles multiple failure modes\nconst input = $input.first().json;\nconst reason = input.errorReason || 'unknown';\n\nlet errorMsg;\nif (reason === 'no_category') {\n  errorMsg = 'I could not detect a category. Please include one of:\\n- Area Rug\\n- Outdoor Rug\\n- Hallway Runner\\n- Shag Rug\\n\\n**Example input:**\\nArea Rug\\nfocus: washable';\n} else if (reason === 'no_products') {\n  errorMsg = 'No products were returned for this category. The pre-scraped dataset may not have refreshed yet, or the program API may be temporarily unavailable. Try again in a few minutes, or contact the program team if this persists.';\n} else {\n  errorMsg = 'An unknown error occurred. Please try again or contact the program team.';\n}\n\nreturn [{ json: { error: true, message: errorMsg, reason } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        96
+      ],
+      "id": "a8bdee53-fca7-4223-8cfd-124934764578",
+      "name": "Error Response1"
+    },
+    {
+      "parameters": {
+        "content": "STAGE 1: INPUT & ROUTING",
+        "height": 384,
+        "width": 848,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -64,
+        -112
+      ],
+      "id": "f36a6abe-4950-4fbc-987d-809e44bd4565",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "url": "http://34.196.186.128:8000/api/products/amazon",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "category",
+              "value": "={{ $('Input Parser1').item.json.categoryKey }}"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            },
+            {
+              "name": "focus",
+              "value": "={{ $('Input Parser1').item.json.focus || '' }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        624,
+        -48
+      ],
+      "id": "1d00e9e8-2f52-46a2-8ab1-7c38f9b1b41a",
+      "name": "Fetch Amazon Products"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e93ee84e-28b4-4cf9-89ec-802681f060af",
+              "leftValue": "={{ $json.products.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        -48
+      ],
+      "id": "c8b6dc2d-d991-40c4-9cc6-0c78f0b9a7a7",
+      "name": "Has Products?"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Reshape FastAPI response to legacy { amazonProducts } shape\n// expected by Merge All Data1 and downstream Mistral pipeline.\nconst r = $input.first().json;\nconst products = r.products || [];\n\nreturn [{\n  json: {\n    amazonProducts: products.map(p => ({\n      url: p.url,\n      name: p.name,\n      price: p.price,\n      details: p.details || [],\n      pattern: p.pattern || '',\n      image_url: p.image_url || '',\n      rating: p.rating || '',\n      review_count: p.review_count || '',\n      scraped_at: r.scraped_at || new Date().toISOString()\n    })),\n    totalProducts: products.length,\n    scrapedAt: r.scraped_at || new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        -48
+      ],
+      "id": "e1a26f75-ce35-4ccc-b161-fd21b5c01650",
+      "name": "Reshape Amazon Response"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Input Parser1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Parser1": {
+      "main": [
+        [
+          {
+            "node": "Category Validator1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Category Validator1": {
+      "main": [
+        [
+          {
+            "node": "Fetch Amazon Products",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Amazon Products": {
+      "main": [
+        [
+          {
+            "node": "Has Products?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Error Response1": {
+      "main": [
+        [
+          {
+            "node": "Has Products?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Products?": {
+      "main": [
+        [
+          {
+            "node": "Reshape Amazon Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "e81d2bbb-9095-40d6-98fc-f30894c520ad",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8a3209a58f7acdb11314b79eb2da0b22e276083392813e17467abddd95bfd2c3"
+  },
+  "nodeGroups": [],
+  "id": "pZ8DlHNxnAUhFtYW",
+  "tags": []
+}
