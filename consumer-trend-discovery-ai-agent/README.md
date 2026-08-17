@@ -61,8 +61,6 @@ The Area Rug analysis generated a structured trend report covering:
 - Trend risks
 - Product recommendations
 
-[View the full Area Rug Trend Report](./area-rug-trend-report.pdf)
-
 ## Workflow Screenshots
 
 ### Full Workflow
