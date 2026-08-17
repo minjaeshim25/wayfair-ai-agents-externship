@@ -92,4 +92,4 @@ The Area Rug analysis generated a structured trend report covering:
 ![Stage 7](./stage7-output.png)
 
 ### Final Area Rug Trend Report
-[View the full Area Rug Trend Report](./Area Rug Trend Report.pdf)
+[View the full Area Rug Trend Report](./area-rug-trend-report.pdf)
