@@ -66,9 +66,10 @@ The analysis found distinct positioning across the three retailers, with Wayfair
 * **JSON** — product data processing and standardization
 * **HTML** — automated report generation
 
-## Sample Output
+## Sample Output (Report)
 
-[View the full Area Rug Trend Report](./Competitor Analysis Report - Area Rug.pdf)
+[View the Area Rug Competitor Analysis Report](./competitor-analysis-report-area-rug.pdf)
+
 ## Project Context
 
 This project was completed as part of the **Wayfair AI Agent Engineering Externship** and explores how AI workflows can transform e-commerce product data into structured competitive intelligence and actionable category insights.
